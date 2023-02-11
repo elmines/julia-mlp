@@ -49,20 +49,28 @@ function forward(x::Constant, inputs::InputDict)::Number
 	return x.value
 end
 
-(+)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a + b)
-(-)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a - b)
-(*)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a * b)
-(/)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a / b)
-(^)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a ^ b)
+#(+)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a + b)
+#(-)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a - b)
+#(*)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a * b)
+#(/)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a / b)
+#(^)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a ^ b)
 
 
 macro binary_op(op)
 	return quote
-		($op)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> ($op)(a, b))
+		$(esc(op))(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> ($op)(a, b))
+                $(esc(op))(x::Number, y::Tensor) = ($op)(Constant(x), y)
+		$(esc(op))(x::Tensor, y::Number) = ($op)(x, Constant(y))
 	end
 end
-println( @macroexpand @binary_op(*) )
+
+#println(@macroexpand @binary_op(+))
+
+@binary_op(+)
+@binary_op(-)
 @binary_op(*)
+@binary_op(/)
+@binary_op(^)
 
 
 l = Input()
@@ -70,10 +78,8 @@ w = Input()
 a = l * w
 println("rectangle_area = ", forward(a, InputDict(l => 2, w => 6)))
 
-two_tensor = Constant(2)
-pi_tensor = Constant(π)
 r = Input()
-circle_area = pi_tensor * r ^ two_tensor
+circle_area = π * r ^ 2
 println("circle_area = ", forward(circle_area, InputDict(r => 1)))
 println("circle_area = ", forward(circle_area, InputDict(r => 2)))
 

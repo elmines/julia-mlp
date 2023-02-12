@@ -1,5 +1,5 @@
 
-export Tensor, Input, Operation, Constant, Variable
+export Tensor, Parameter, Operation, Constant
 
 nextId::Int64 = 0
 function getNewId()
@@ -9,9 +9,10 @@ end
 
 abstract type Tensor end
 
-struct Input <: Tensor
+struct Parameter <: Tensor
 	id::Int64
-	Input() = new(getNewId())
+	trainable::Bool
+	Parameter(trainable::Bool) = new(getNewId(), trainable)
 end
 
 struct Operation <: Tensor
@@ -27,14 +28,7 @@ struct Constant <: Tensor
 	Constant(value::Number) = new(getNewId(), value)
 end
 
-mutable struct Variable <: Tensor
-	id::Int64
-	value::Number
-	Variable(value::Number) = new(getNewId(), value)
-end
-
-getId(x::Input) = x.id
+getId(x::Parameter) = x.id
 getId(x::Operation) = x.id
 getId(x::Constant) = x.id
-getId(x::Variable) = x.id
 

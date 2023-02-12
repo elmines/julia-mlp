@@ -1,6 +1,6 @@
 module MinesNet
 
-export Tensor, Input, Operation, Constant
+export Tensor, Input, Operation, Constant, Variable
 export InputDict, forward
 
 nextId::Int64 = 0
@@ -29,9 +29,16 @@ struct Constant <: Tensor
 	Constant(value::Number) = new(getNewId(), value)
 end
 
+mutable struct Variable <: Tensor
+	id::Int64
+	value::Number
+	Variable(value::Number) = new(getNewId(), value)
+end
+
 getId(x::Input) = x.id
 getId(x::Operation) = x.id
 getId(x::Constant) = x.id
+getId(x::Variable) = x.id
 
 InputDict = Dict{Tensor, Number}
 
@@ -45,6 +52,10 @@ function forward(x::Operation, inputs::InputDict)::Number
 end
 
 function forward(x::Constant, inputs::InputDict)::Number
+	return x.value
+end
+
+function forward(x::Variable, inputs::InputDict)::Number
 	return x.value
 end
 

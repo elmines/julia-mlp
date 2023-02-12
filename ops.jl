@@ -1,15 +1,29 @@
-macro binary_op(op)
+macro simple_binary_op(op)
 	return quote
-		($op)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> ($op)(a, b))
+		function ($op)(x::Tensor, y::Tensor)
+			if size(x) != size(y)
+				throw(DimensionMismatch(string(size(x)) * " incompatible with " * string(size(y))))
+			end
+
+			return Operation([x, y], size(x), (a, b) -> ($op)(a, b))
+		end
                 ($op)(x::Number, y::Tensor) = ($op)(Constant(x), y)
 		($op)(x::Tensor, y::Number) = ($op)(x, Constant(y))
 	end
 end
 
-@binary_op(Base.:+)
-@binary_op(Base.:-)
-@binary_op(Base.:*)
-@binary_op(Base.:/)
-@binary_op(Base.:^)
+macro broadcast_binary_op(op)
+	return quote
+		function ($op)(x::Tensor, y::Tensor)
+			# TODO: Check broadcasting will work
+		end
+	end
+end
+
+@simple_binary_op(Base.:+)
+@simple_binary_op(Base.:-)
+@simple_binary_op(Base.:/)
+@simple_binary_op(Base.:^)
 
 
+@simple_binary_op(Base.:*)

@@ -1,9 +1,3 @@
-import Base.:+
-import Base.:-
-import Base.:*
-import Base.:/
-import Base.:^
-
 nextId::Int64 = 0
 function getNewId()
 	global nextId = nextId + 1
@@ -49,28 +43,19 @@ function forward(x::Constant, inputs::InputDict)::Number
 	return x.value
 end
 
-#(+)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a + b)
-#(-)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a - b)
-#(*)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a * b)
-#(/)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a / b)
-#(^)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> a ^ b)
-
-
 macro binary_op(op)
 	return quote
-		$(esc(op))(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> ($op)(a, b))
-                $(esc(op))(x::Number, y::Tensor) = ($op)(Constant(x), y)
-		$(esc(op))(x::Tensor, y::Number) = ($op)(x, Constant(y))
+		($op)(x::Tensor, y::Tensor) = Operation([x, y], (a, b) -> ($op)(a, b))
+                ($op)(x::Number, y::Tensor) = ($op)(Constant(x), y)
+		($op)(x::Tensor, y::Number) = ($op)(x, Constant(y))
 	end
 end
 
-#println(@macroexpand @binary_op(+))
-
-@binary_op(+)
-@binary_op(-)
-@binary_op(*)
-@binary_op(/)
-@binary_op(^)
+@binary_op(Base.:+)
+@binary_op(Base.:-)
+@binary_op(Base.:*)
+@binary_op(Base.:/)
+@binary_op(Base.:^)
 
 
 l = Input()

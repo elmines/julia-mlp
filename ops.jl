@@ -7,16 +7,12 @@ macro simple_binary_op(op)
 
 			return Operation([x, y], size(x), (a, b) -> ($op)(a, b))
 		end
+
                 ($op)(x::Number, y::Tensor) = ($op)(Constant(x), y)
 		($op)(x::Tensor, y::Number) = ($op)(x, Constant(y))
-	end
-end
+                ($op)(x::Array, y::Tensor) = ($op)(Constant(x), y)
+		($op)(x::Tensor, y::Array) = ($op)(x, Constant(y))
 
-macro broadcast_binary_op(op)
-	return quote
-		function ($op)(x::Tensor, y::Tensor)
-			# TODO: Check broadcasting will work
-		end
 	end
 end
 
@@ -24,6 +20,4 @@ end
 @simple_binary_op(Base.:-)
 @simple_binary_op(Base.:/)
 @simple_binary_op(Base.:^)
-
-
 @simple_binary_op(Base.:*)

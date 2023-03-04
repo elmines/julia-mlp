@@ -36,6 +36,34 @@ struct Constant{N} <: Tensor{N}
 	Constant(value::Array{<:Number, M}) where {M} = new{M}(getNewId(), value)
 end
 
+function Base.show(io::IO, x::Parameter)
+	string_rep = "{Parameter: " *
+		"id=$(x.id)" *
+		", size=$(x.size)" *
+		", trainable=$(x.trainable)" *
+		"}"
+	show(io, string_rep)
+end
+
+function Base.show(io::IO, x::Operation)
+	parent_ids = [getId(p) for p in x.parents]
+	string_rep = "{Operation: " *
+		"id=$(x.id)" *
+		", size=$(x.size)" *
+		", parents=$(parent_ids)" *
+		"}"
+	show(io, string_rep)
+end
+
+function Base.show(io::IO, x::Constant)
+	string_rep = "{Constant: " *
+		"id=$(x.id)" *
+		", size=$(size(x))" *
+		"}"
+	show(io, string_rep)
+end
+
+
 getId(x::Parameter) = x.id
 getId(x::Operation) = x.id
 getId(x::Constant) = x.id
@@ -59,26 +87,25 @@ function Base.getindex(x::Tensor{N}, i::Int) where {N}
 	if N < 1
 		throw(DimensionMismatch("Tried to index scalar tensor"))
 	end
-	println("Indexing " * string(x) * " " * " by " * string(i))
 	return Operation([x], size(x)[2:end], (raw) -> raw[i])
 end
 
 Base.axes(x::Tensor) = Tuple(Base.OneTo(n) for n in size(x))
 
 function Base.iterate(x::Tensor)
-	println("Iterating on " * string(x))
+	#println("Iterating on " * string(x))
 	if size(x) == ()
-		println("\tReturning the raw tensor")
+		#println("\tReturning the raw tensor")
 		return x
 	end
 	return (x[1], 2)
 end
 
 function Base.iterate(x::Tensor, state)
-	println("Iterating on " * string(x) * " with state " * string(state))
+	#println("Iterating on " * string(x) * " with state " * string(state))
 	size_x = size(x)
 	if size_x == () || state > size_x[1]
-		println("\tReturning nothing")
+		#println("\tReturning nothing")
 		return nothing
 	end
 	return (x[state], state + 1)
@@ -87,7 +114,22 @@ end
 
 # Broadcasting
 struct TensorStyle <: Base.BroadcastStyle end
-Base.BroadcastStyle(::Type{<:Tensor}) = TensorStyle()
+function Base.BroadcastStyle(::Type{<:Tensor})
+	println("Called unary nonparametric")
+	return TensorStyle()
+end
+function Base.BroadcastStyle(::Type{<:Tensor}, ::Type{<:Tensor})
+	println("Called binary nonparametric")
+	return TensorStyle()
+end
+function Base.BroadcastStyle(::Type{<:Tensor{N}}) where {N}
+	println("Called unary parametric")
+	return TensorStyle()
+end
+function Base.BroadcastStyle(::Type{<:Tensor{N}}, ::Type{<:Tensor{M}}) where {N, M}
+	println("Called binary parametric")
+	return TensorStyle()
+end
 
 function Base.similar(bc::Base.Broadcast.Broadcasted{TensorStyle}, ::Type{ElType}) where {ElType}
 	println("Calling Base.similar")

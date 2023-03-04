@@ -9,9 +9,10 @@ println(size(compl_tens[5, 4, 3, 2, 1]))
 l = Parameter((3,), false)
 w = Parameter((), false)
 
-
 a = l .* w
+println(typeof(a))
 println(size(a))
+println(a)
 
 #input_dict = InputDict(l => [2, 4, 6], w => [1, 2, 3])
 #println("rectangle_area = ", forward(a, input_dict))

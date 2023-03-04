@@ -2,16 +2,20 @@ include("minesnet.jl")
 
 using .MinesNet
 
-l = Parameter((), false)
+compl_tens = Parameter((8, 4, 16, 64, 32), false)
+println(size(compl_tens[2]))
+println(size(compl_tens[5, 4, 3, 2, 1]))
+
+l = Parameter((3,), false)
 w = Parameter((), false)
 
-println(l)
-println(w)
 
-a = l * w
-println(a)
-println("rectangle_area = ", forward(a, InputDict(l => 2, w => 6)))
-#
+a = l .* w
+println(size(a))
+
+#input_dict = InputDict(l => [2, 4, 6], w => [1, 2, 3])
+#println("rectangle_area = ", forward(a, input_dict))
+
 #r = Parameter((), false)
 #pie = Parameter((), false)
 #circle_area = pie * r ^ 2

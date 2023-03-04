@@ -1,5 +1,5 @@
 
-export Tensor, Parameter, Operation, Constant
+export Tensor, Parameter, Operation, Constant, ConcreteTensor
 export SizeType
 
 nextId::Int64 = 0
@@ -11,6 +11,8 @@ end
 abstract type Tensor{N} end
 
 SizeType = Tuple{Vararg{<:Integer}}
+
+ConcreteTensor = Union{Array{<:Number}, <:Number}
 
 struct Parameter{N} <: Tensor{N}
 	id::Int64
@@ -42,16 +44,53 @@ Base.size(x::Parameter) = x.size
 Base.size(x::Operation) = x.size
 Base.size(x::Constant) = Base.size(x.value)
 
+Base.length(x::Tensor) = prod(size(x))
+
+Base.ndims(x::Tensor) = length(size(x))
+
 function Base.getindex(x::Tensor{N}, i::Vararg{Int, N}) where {N}
-	return Operation([x], ()::Tuple, (raw) -> raw[i...])
+	if N < 1
+		throw(DimensionMismatch("Tried to index scalar tensor"))
+	end
+	return Operation([x], (), (raw) -> raw[i...])
+end
+
+function Base.getindex(x::Tensor{N}, i::Int) where {N}
+	if N < 1
+		throw(DimensionMismatch("Tried to index scalar tensor"))
+	end
+	println("Indexing " * string(x) * " " * " by " * string(i))
+	return Operation([x], size(x)[2:end], (raw) -> raw[i])
 end
 
 Base.axes(x::Tensor) = Tuple(Base.OneTo(n) for n in size(x))
 
-Base.BroadcastStyle(::Type{<:Tensor}) = Broadcast.Style{Tensor}()
+function Base.iterate(x::Tensor)
+	println("Iterating on " * string(x))
+	if size(x) == ()
+		println("\tReturning the raw tensor")
+		return x
+	end
+	return (x[1], 2)
+end
 
-function Base.similar(bc::Base.Broadcast.Broadcasted, ::Type{ElType}) where {ElType}
+function Base.iterate(x::Tensor, state)
+	println("Iterating on " * string(x) * " with state " * string(state))
+	size_x = size(x)
+	if size_x == () || state > size_x[1]
+		println("\tReturning nothing")
+		return nothing
+	end
+	return (x[state], state + 1)
+end
 
+
+# Broadcasting
+struct TensorStyle <: Base.BroadcastStyle end
+Base.BroadcastStyle(::Type{<:Tensor}) = TensorStyle()
+
+function Base.similar(bc::Base.Broadcast.Broadcasted{TensorStyle}, ::Type{ElType}) where {ElType}
+	println("Calling Base.similar")
 	new_size = Tuple(length(ax) for ax in axes(bc))
 
 	return Operation([arg for arg in bc.args], new_size, (raw) -> similar(ElType, axes(raw)))

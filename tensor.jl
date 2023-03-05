@@ -76,6 +76,8 @@ Base.length(x::Tensor) = prod(size(x))
 
 Base.ndims(x::Tensor) = length(size(x))
 
+Base.ndims(::Type{<:Tensor{N}}) where N = N
+
 function Base.getindex(x::Tensor{N}, i::Vararg{Int, N}) where {N}
 	if N < 1
 		throw(DimensionMismatch("Tried to index scalar tensor"))
@@ -88,6 +90,10 @@ function Base.getindex(x::Tensor{N}, i::Int) where {N}
 		throw(DimensionMismatch("Tried to index scalar tensor"))
 	end
 	return Operation([x], size(x)[2:end], (raw) -> raw[i])
+end
+
+function Base.getindex(x::Tensor{N}, i::CartesianIndex{N}) where {N}
+	return x[Tuple(i)...]
 end
 
 Base.axes(x::Tensor) = Tuple(Base.OneTo(n) for n in size(x))
@@ -112,28 +118,17 @@ function Base.iterate(x::Tensor, state)
 end
 
 
+
 # Broadcasting
 struct TensorStyle <: Base.BroadcastStyle end
-function Base.BroadcastStyle(::Type{<:Tensor})
-	println("Called unary nonparametric")
-	return TensorStyle()
-end
-function Base.BroadcastStyle(::Type{<:Tensor}, ::Type{<:Tensor})
-	println("Called binary nonparametric")
-	return TensorStyle()
-end
-function Base.BroadcastStyle(::Type{<:Tensor{N}}) where {N}
-	println("Called unary parametric")
-	return TensorStyle()
-end
-function Base.BroadcastStyle(::Type{<:Tensor{N}}, ::Type{<:Tensor{M}}) where {N, M}
-	println("Called binary parametric")
+
+function Base.BroadcastStyle(::Type{<:Tensor{N}}) where N
+	println("Called unary")
 	return TensorStyle()
 end
 
-function Base.similar(bc::Base.Broadcast.Broadcasted{TensorStyle}, ::Type{ElType}) where {ElType}
-	println("Calling Base.similar")
-	new_size = Tuple(length(ax) for ax in axes(bc))
-
-	return Operation([arg for arg in bc.args], new_size, (raw) -> similar(ElType, axes(raw)))
+function Broadcast.broadcastable(x::Tensor)
+	println("Broadcasting $x")
+	return x
 end
+

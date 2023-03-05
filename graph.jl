@@ -23,7 +23,7 @@ end
 function forward(x::Tensor, inputs::InputDict)::ConcreteTensor
 	for (tensor, evaluation) in inputs
 		if size(tensor) != size(evaluation)
-			throw(DimensionMismatch("Concrete size " * size(evaluation) * " doesn't match graph size " * size(tensor)))
+			throw(DimensionMismatch("Concrete size $(size(evaluation)) doesn't match graph size $(size(tensor))"))
 		end
 	end
 	return raw_forward(x, inputs)

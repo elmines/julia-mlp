@@ -2,6 +2,6 @@ module MinesNet
 
 include("tensor.jl")
 include("graph.jl")
-include("ops.jl")
+include("ops/ops.jl")
 
 end

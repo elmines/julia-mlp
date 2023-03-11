@@ -3,7 +3,6 @@
 include("minesnet.jl")
 
 using .MinesNet
-using Random:MersenneTwister
 
 l = Parameter((3,), false)
 w = Parameter((), false)
@@ -27,3 +26,7 @@ exp_ten = [4, 2, 1] .^ expos
 exp_dict = InputDict(expos => [1 2 3; 4 5 6; 7 8 9])
 exp_res = forward(exp_ten, exp_dict)
 @show exp_res
+
+y = Parameter((), false)
+z = 50 / y
+@show forward(z, InputDict(y => 12.5))

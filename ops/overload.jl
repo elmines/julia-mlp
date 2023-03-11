@@ -8,6 +8,7 @@ macro overload_binary_op(op)
 end
 @overload_binary_op(Base.:+)
 @overload_binary_op(Base.:-)
+@overload_binary_op(Base.:*)
 @overload_binary_op(Base.:/)
 @overload_binary_op(Base.:^)
 

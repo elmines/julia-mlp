@@ -1,5 +1,5 @@
 
-export Tensor, Parameter, Operation, Constant, ConcreteTensor
+export Tensor, Input, Parameter, Operation, Constant
 export SizeType
 
 nextId::Int64 = 0
@@ -12,13 +12,16 @@ abstract type Tensor{N} end
 
 SizeType = Tuple{Vararg{<:Integer}}
 
-ConcreteTensor = Union{Array{<:Number}, <:Number}
+struct Input{N} <: Tensor{N}
+	id::Int64
+	size::SizeType
+	Input(size::SizeType) = new{length(size)}(getNewId(), size)
+end
 
 struct Parameter{N} <: Tensor{N}
 	id::Int64
-	size::SizeType
-	trainable::Bool
-	Parameter(size::SizeType, trainable::Bool) = new{length(size)}(getNewId(), size, trainable)
+	value::Union{Number, Array{<:Number, N}}
+	Parameter(size::SizeType) = new{length(size)}(getNewId(), Array{Float32}(undef, size))
 end
 
 struct Operation{N} <: Tensor{N}
@@ -64,13 +67,13 @@ function Base.show(io::IO, x::Constant)
 end
 
 
+getId(x::Input) = x.id
 getId(x::Parameter) = x.id
 getId(x::Operation) = x.id
 getId(x::Constant) = x.id
 
-Base.size(x::Parameter) = x.size
+Base.size(x::Input) = x.size
+Base.size(x::Parameter) = size(x.value)
 Base.size(x::Operation) = x.size
-Base.size(x::Constant) = Base.size(x.value)
-
-
+Base.size(x::Constant) = size(x.value)
 

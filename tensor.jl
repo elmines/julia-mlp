@@ -77,3 +77,4 @@ Base.size(x::Parameter) = size(x.value)
 Base.size(x::Operation) = x.size
 Base.size(x::Constant) = size(x.value)
 
+Base.length(x::Tensor) = prod(size(x))

@@ -4,15 +4,15 @@ include("minesnet.jl")
 
 using .MinesNet
 
-l = Parameter((3,), false)
-w = Parameter((), false)
+l = Input((3,))
+w = Input(())
 s = l .+ w
 println(s)
 
 input_dict = InputDict(l => [2, 4, 6], w => 3)
 println("s = ", forward(s, input_dict))
 
-M = Parameter((3, 3), false)
+M = Input((3, 3))
 v = [10, 20, 30]
 Mv = M .* v
 Mv_dict = InputDict(M => [1 2 3; 4 5 6; 7 8 9])
@@ -21,13 +21,13 @@ Mv_res = forward(Mv, Mv_dict)
 @show Mv_res
 
 
-expos = Parameter((3, 3), false)
+expos = Input((3, 3))
 exp_ten = [4, 2, 1] .^ expos
 exp_dict = InputDict(expos => [1 2 3; 4 5 6; 7 8 9])
 exp_res = forward(exp_ten, exp_dict)
 @show exp_res
 
-y = Parameter((), false)
+y = Input(())
 z = 50 / y
 @show forward(z, InputDict(y => 12.5))
 

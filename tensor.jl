@@ -1,6 +1,7 @@
 
 export Tensor, Input, Parameter, Operation, Constant
 export SizeType
+export make_tensor
 
 nextId::Int64 = 0
 function getNewId()
@@ -66,6 +67,13 @@ function Base.show(io::IO, x::Constant)
 	show(io, string_rep)
 end
 
+function make_tensor(x)::Tensor
+	if isa(x, Tensor)
+		return x
+	else
+		return Constant(x)
+	end
+end
 
 getId(x::Input) = x.id
 getId(x::Parameter) = x.id

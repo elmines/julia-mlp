@@ -5,6 +5,8 @@ function Base.BroadcastStyle(::Type{<:Tensor})
 end
 
 function Base.BroadcastStyle(::TensorStyle, ::Base.BroadcastStyle)
+	println("Weighing the broadcast styles")
+	@show stacktrace()
 	return TensorStyle()
 end
 
@@ -14,24 +16,18 @@ end
 
 macro define_binary_broadcast(op)
 	return quote
-		function Base.Broadcast.broadcasted(::TensorStyle, ::typeof($op), x::Tensor, y::Tensor)
+		function Base.Broadcast.broadcasted(::TensorStyle, ::typeof($op), x, y)
+			x::Tensor = make_tensor(x)
+			y::Tensor = make_tensor(y)
 			new_axes = Base.Broadcast.combine_axes(axes(x), axes(y))
 			new_size = Tuple(length(ax) for ax in new_axes)
 			return Operation([x, y], new_size, (a, b) -> broadcast($op, a, b))
-		end
-
-		function Broadcast.broadcasted(::TensorStyle, ::typeof($op), x, y::Tensor)
-			return broadcast($op, Constant(x), y)
-		end
-
-		function Broadcast.broadcasted(::TensorStyle, ::typeof($op), x::Tensor, y)
-			return broadcast($op, x, Constant(y))
 		end
 	end
 end
 @define_binary_broadcast(Base.:+)
 @define_binary_broadcast(Base.:-)
 @define_binary_broadcast(Base.:/)
-@define_binary_broadcast(Base.:^)
 @define_binary_broadcast(Base.:*)
+@define_binary_broadcast(Base.:^)
 

@@ -29,6 +29,5 @@ features = Input((60,))
 labels = Input((20,))
 h1 = apply_dense(features, 40; activation=tanh, use_bias=true)
 output = apply_dense(features, 20, use_bias=true)
-loss = (output - labels)
+loss = (output - labels) .^ 2.0
 @show loss
-loss = loss ^ 2

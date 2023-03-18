@@ -1,44 +1,40 @@
 
-export InputDict, forward, Model
+export Model, TensorDict, predict
 
-InputDict = Dict{Tensor, Union{Array{<:Number}, <:Number}}
+TensorDict = Dict{Tensor, Union{<:Array{<:Number}, <:Number}}
 
-function raw_forward(x::Input, inputs::InputDict)
-	raw_val = inputs[x]
-	#if size(raw_val) != size(x)
-	#	throw(DimensionMismatch(""))
-	#end
+function forward!(x::Input, cache::TensorDict)
+	raw_val = cache[x]
 	return raw_val
 end
 
-function raw_forward(x::Operation, inputs::InputDict)
-	callbackArgs = [raw_forward(parent, inputs) for parent in x.parents]
-	return (x.callback)(callbackArgs...)
+function forward!(x::Operation, cache::TensorDict)
+	if !(x in keys(cache))
+		callbackArgs = [forward!(parent, cache) for parent in x.parents]
+		cache[x] = (x.callback)(callbackArgs...)
+	end
+	return cache[x]
 end
 
-function raw_forward(x::Constant, inputs::InputDict)
+function forward!(x::Constant, cache::TensorDict)
 	return x.value
 end
 
-function raw_forward(x::Parameter, inputs::InputDict)
+function forward!(x::Parameter, cache::TensorDict)
 	return x.value
 end
 
-function forward(x::Tensor, inputs::InputDict)
-	#for (tensor, evaluation) in inputs
-	#	if size(tensor) != size(evaluation)
-	#		throw(DimensionMismatch("Concrete size $(size(evaluation)) doesn't match graph size $(size(tensor))"))
-	#	end
-	#end
-	return raw_forward(x, inputs)
+function forward!(tensors::Vector{<:Tensor}, cache::TensorDict)
+	return [forward!(x, cache) for x in tensors]
 end
 
 struct Model{NumIn, NumOut}
 	inputs::Vector{<:Input}
 	outputs::Vector{<:Tensor}
 	trainables::Vector{<:Parameter}
-	objective::Union{Tensor{0}, Missing}
-	Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, trainables::Vector{<:Parameter}, objective::Union{Tensor{0}, Missing}=missing) = new{length(inputs), length(outputs)}(inputs, outputs, trainables, objective)
+	labels::Union{<:Input, Missing}
+	objective::Union{<:Tensor{0}, Missing}
+	Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, trainables::Vector{<:Parameter}, labels::Union{<:Input, Missing}, objective::Union{<:Tensor{0}, Missing}) = new{length(inputs), length(outputs)}(inputs, outputs, trainables, labels, objective)
 end
 
 function _validate_graph(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, collect_params=false)::Vector{<:Parameter}
@@ -65,13 +61,18 @@ function _validate_graph(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, col
 	return vector_params
 end
 
-function Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, objective::Union{Tensor{0}, Missing} = missing)
+function Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, labels::Input, objective::Tensor{0})
 	_validate_graph(inputs, outputs)
-	if ismissing(objective)
-		params = Vector{Parameter}()
-	else
-		params = _validate_graph(inputs, [objective], true)
-	end
-	return Model(inputs, outputs, params, objective)
+	params = _validate_graph([inputs..., labels], [objective], true)
+	return Model(inputs, outputs, params, labels, objective)
 end
 
+function Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor})
+	_validate_graph(inputs, outputs)
+	return Model(inputs, outputs, Vector{Parameter}(), missing, missing)
+end
+
+function predict(model::Model, inputs::TensorDict)::Vector{ConcreteTensor}
+	cache = TensorDict(k => v for (k,v) in inputs)
+	return forward!(model.outputs, cache)
+end

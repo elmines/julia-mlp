@@ -41,9 +41,7 @@ struct Model{NumIn, NumOut}
 	Model(inputs::Vector{<:Parameter}, outputs::Vector{<:Tensor}, trainables::Vector{<:Parameter}, objective::Union{Tensor{0}, Missing}=missing) = new{length(inputs), length(outputs)}(inputs, outputs, trainables, objective)
 end
 
-doof = 3
-
-function validate_graph(outputs::Vector{<:Tensor}, inputs::Vector{<:Input}, collect_params=false)::Set{<:Parameter}
+function _validate_graph(outputs::Vector{<:Tensor}, inputs::Vector{<:Input}, collect_params=false)::Set{<:Parameter}
 	params::Set{<:Parameter} = Set()
 	queue = [outputs...]
 	while length(queue) > 0
@@ -64,7 +62,6 @@ function validate_graph(outputs::Vector{<:Tensor}, inputs::Vector{<:Input}, coll
 end
 
 function Model(inputs::Vector{<:Parameter}, outputs::Vector{<:Tensor}, objective::Union{Tensor{0}, Missing} = missing)
-	visited = Set()
 	_validate_graph(inputs, outputs)
 	params::Vector{<:Parameter}
 	if ismissing(objective)
@@ -72,6 +69,6 @@ function Model(inputs::Vector{<:Parameter}, outputs::Vector{<:Tensor}, objective
 	else
 		params = _validate_graph(inputs, [objective], true)
 	end
-	return Model(inputs, outputs, trainables, objective)
+	return Model(inputs, outputs, params, objective)
 end
 

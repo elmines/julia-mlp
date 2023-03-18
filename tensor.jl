@@ -3,6 +3,8 @@ export Tensor, Input, Parameter, Operation, Constant
 export SizeType
 export make_tensor
 
+import Distributions:Normal
+
 nextId::Int64 = 0
 function getNewId()
 	global nextId = nextId + 1
@@ -22,7 +24,11 @@ end
 struct Parameter{N} <: Tensor{N}
 	id::Int64
 	value::Union{Number, Array{<:Number, N}}
-	Parameter(size::SizeType) = new{length(size)}(getNewId(), Array{Float32}(undef, size))
+	Parameter(initializer::Array{<:Number, N}) where {N} = new{N}(getNewId(), initializer)
+end
+
+function Parameter(size::SizeType)
+	return Parameter(rand(Normal(0, 1), size))
 end
 
 struct Operation{N} <: Tensor{N}
@@ -43,8 +49,7 @@ end
 function Base.show(io::IO, x::Parameter)
 	string_rep = "{Parameter: " *
 		"id=$(x.id)" *
-		", size=$(x.size)" *
-		", trainable=$(x.trainable)" *
+		", size=$(size(x))" *
 		"}"
 	show(io, string_rep)
 end

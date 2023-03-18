@@ -34,16 +34,18 @@ function forward(x::Tensor, inputs::InputDict)
 end
 
 struct Model{NumIn, NumOut}
-	inputs::Vector{<:Parameter}
+	inputs::Vector{<:Input}
 	outputs::Vector{<:Tensor}
 	trainables::Vector{<:Parameter}
 	objective::Union{Tensor{0}, Missing}
-	Model(inputs::Vector{<:Parameter}, outputs::Vector{<:Tensor}, trainables::Vector{<:Parameter}, objective::Union{Tensor{0}, Missing}=missing) = new{length(inputs), length(outputs)}(inputs, outputs, trainables, objective)
+	Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, trainables::Vector{<:Parameter}, objective::Union{Tensor{0}, Missing}=missing) = new{length(inputs), length(outputs)}(inputs, outputs, trainables, objective)
 end
 
-function _validate_graph(outputs::Vector{<:Tensor}, inputs::Vector{<:Input}, collect_params=false)::Set{<:Parameter}
-	params::Set{<:Parameter} = Set()
-	queue = [outputs...]
+function _validate_graph(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, collect_params=false)::Vector{<:Parameter}
+	params = Set{Parameter}()
+	visited = Set{Tensor}()
+	queue = Vector{Tensor}()
+	push!(queue, outputs...)
 	while length(queue) > 0
 		node = pop!(queue)
 		if node in visited
@@ -58,14 +60,15 @@ function _validate_graph(outputs::Vector{<:Tensor}, inputs::Vector{<:Input}, col
 			push!(params, node)
 		end
 	end
-	return [params...]
+	vector_params = Vector{Parameter}()
+	push!(vector_params, params...)
+	return vector_params
 end
 
-function Model(inputs::Vector{<:Parameter}, outputs::Vector{<:Tensor}, objective::Union{Tensor{0}, Missing} = missing)
+function Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, objective::Union{Tensor{0}, Missing} = missing)
 	_validate_graph(inputs, outputs)
-	params::Vector{<:Parameter}
 	if ismissing(objective)
-		params = []
+		params = Vector{Parameter}()
 	else
 		params = _validate_graph(inputs, [objective], true)
 	end

@@ -2,6 +2,7 @@
 export Model, TensorDict, predict
 
 TensorDict = Dict{Tensor, Union{<:Array{<:Number}, <:Number}}
+GradDict = Dict{Tuple{Tensor, Tensor}, ConcreteTensor}
 
 function forward!(x::Input, cache::TensorDict)
 	raw_val = cache[x]
@@ -26,6 +27,51 @@ end
 
 function forward!(tensors::Vector{<:Tensor}, cache::TensorDict)
 	return [forward!(x, cache) for x in tensors]
+end
+
+function backward!(grad_dict::GradDict, x::Constant, parameters::Vector{<:Parameter}, cache::TensorDict)
+	for param in parameters
+		grad_dict[x, param] = 0.
+	end
+end
+
+function backward!(grad_dict::GradDict, x::Input, parameters::Vector{<:Parameter}, cache::TensorDict)
+	for param in parameters
+		grad_dict[x, param] = 0.
+	end
+end
+
+function backward!(grad_dict::GradDict, x::Parameter, parameters::Vector{<:Parameter}, cache::TensorDict)
+	throw(ErrorException("This shouldn't be called."))
+end
+
+
+function backward!(grad_dict::GradDict, x::Operation, parameters::Vector{<:Parameter}, cache::TensorDict)
+	callback_args = [cache[p] for p in x.parents] 
+	for (parent, grad_callback) in zip(x.parents, x.grad_callbacks)
+		if (x, parent) in keys(grad_dict)
+			continue
+		end
+		if isa(parent, Parameter)
+			grad_dict[x, parent] = grad_callback(callback_args...)
+			continue
+		end
+
+		backward!(grad_dict, parent, parameters, cache)
+		grad_dict[x, parent] = grad_callback(callback_args...)
+		for param in parameters
+			# Already computed this earlier
+			if param in x.parents
+				continue
+			end
+
+			if !((x, param) in keys(grad_dict))
+				grad_dict[x, param] = 0.
+			end
+			grad_dict[x, param] .+= grad_dict[x, parent] .* grad_dict[parent, param]
+		end
+
+	end
 end
 
 struct Model{NumIn, NumOut}

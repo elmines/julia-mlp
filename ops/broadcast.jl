@@ -12,20 +12,58 @@ function Broadcast.broadcastable(x::Tensor)
 	return x
 end
 
-macro define_binary_broadcast(op)
-	return quote
-		function Base.Broadcast.broadcasted(::TensorStyle, ::typeof($op), x, y)
-			x::Tensor = make_tensor(x)
-			y::Tensor = make_tensor(y)
-			new_axes = Base.Broadcast.combine_axes(x, y)
-			new_size = Tuple(length(ax) for ax in new_axes)
-			return Operation([x, y], new_size, (a, b) -> broadcast($op, a, b))
-		end
-	end
+function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:+), x, y)
+	x::Tensor = make_tensor(x)
+	y::Tensor = make_tensor(y)
+	new_axes = Base.Broadcast.combine_axes(x, y)
+	new_size = Tuple(length(ax) for ax in new_axes)
+
+	l_grad = (l, r) -> 1
+	r_grad = (l, r) -> 1
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:+, a, b), [l_grad, r_grad])
 end
-@define_binary_broadcast(Base.:+)
-@define_binary_broadcast(Base.:-)
-@define_binary_broadcast(Base.:/)
-@define_binary_broadcast(Base.:*)
-@define_binary_broadcast(Base.:^)
+
+function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:-), x, y)
+	x::Tensor = make_tensor(x)
+	y::Tensor = make_tensor(y)
+	new_axes = Base.Broadcast.combine_axes(x, y)
+	new_size = Tuple(length(ax) for ax in new_axes)
+
+	l_grad = (l, r) -> 1
+	r_grad = (l, r) -> -1
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:-, a, b), [l_grad, r_grad])
+end
+
+function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:/), x, y)
+	x::Tensor = make_tensor(x)
+	y::Tensor = make_tensor(y)
+	new_axes = Base.Broadcast.combine_axes(x, y)
+	new_size = Tuple(length(ax) for ax in new_axes)
+
+	l_grad = (l, r) -> 1 ./ r
+	r_grad = (l, r) -> -l .* r .^ -2
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:/, a, b), [l_grad, r_grad])
+end
+
+function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:*), x, y)
+	x::Tensor = make_tensor(x)
+	y::Tensor = make_tensor(y)
+	new_axes = Base.Broadcast.combine_axes(x, y)
+	new_size = Tuple(length(ax) for ax in new_axes)
+
+	l_grad = (l, r) -> r
+	r_grad = (l, r) -> l
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:*, a, b), [l_grad, r_grad])
+end
+
+function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:^), x, y)
+	x::Tensor = make_tensor(x)
+	y::Tensor = make_tensor(y)
+	new_axes = Base.Broadcast.combine_axes(x, y)
+	new_size = Tuple(length(ax) for ax in new_axes)
+
+	l_grad = (l, r) -> r .* l .^ (r .- 1)
+	r_grad = (l, r) -> l .^ r .* log.(l)
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:^, a, b), [l_grad, r_grad])
+end
 

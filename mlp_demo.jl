@@ -7,7 +7,7 @@ using .MinesNet
 # x has 60 dimensions
 # y has 20 dimensions
 function f(x)
-	return 50 * sin(x[begin:20]) / sqrt(x[40:end]) + (x[10:30]^3 * cos(x[35:55]) - exp(x[40:end] / 10))^2
+	return 50 .* sin.(x[begin:20]) ./ sqrt.(x[40:end]) .+ (x[10:30].^3 .* cos.(x[35:55]) .- exp.(x[40:end] ./ 10)).^2
 end
 
 function apply_dense(x::Tensor, output_size::Int; activation=missing, use_bias=false)
@@ -17,7 +17,7 @@ function apply_dense(x::Tensor, output_size::Int; activation=missing, use_bias=f
 	h = x * W
 	if use_bias
 		b = Parameter(zeros(size(x)[begin], output_size))
-		h = h + b
+		h = h .+ b
 	end
 	if !ismissing(activation)
 		h = activation(h)
@@ -25,7 +25,7 @@ function apply_dense(x::Tensor, output_size::Int; activation=missing, use_bias=f
 	return h
 end
 
-BATCH_SIZE = 1
+BATCH_SIZE = 2
 
 features = Input((BATCH_SIZE, 60))
 labels = Input((BATCH_SIZE, 20))

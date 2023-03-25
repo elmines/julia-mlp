@@ -3,7 +3,10 @@ function (Base.:+)(x::Tensor, y::Tensor)
 		throw(DimensionMismatch(string(size(x)) * " incompatible with " * string(size(y))))
 	end
 
-	return Operation([x, y], size(x), (a, b) -> (Base.:+)(a, b))
+	l_grad = (l, r) -> 1
+	r_grad = (l, r) -> 1
+
+	return Operation([x, y], size(x), (l, r) -> (Base.:+)(l, r), [l_grad, r_grad])
 end
 
 function (Base.:-)(x::Tensor, y::Tensor)
@@ -11,7 +14,10 @@ function (Base.:-)(x::Tensor, y::Tensor)
 		throw(DimensionMismatch(string(size(x)) * " incompatible with " * string(size(y))))
 	end
 
-	return Operation([x, y], size(x), (a, b) -> (Base.:-)(a, b))
+	l_grad = (l, r) -> 1
+	r_grad = (l, r) -> -1
+
+	return Operation([x, y], size(x), (a, b) -> (Base.:-)(a, b), [l_grad, r_grad])
 end
 
 function (Base.:/)(x::Tensor, y::Tensor)
@@ -19,7 +25,10 @@ function (Base.:/)(x::Tensor, y::Tensor)
 		throw(DimensionMismatch(string(size(x)) * " incompatible with " * string(size(y))))
 	end
 
-	return Operation([x, y], size(x), (a, b) -> (Base.:/)(a, b))
+	l_grad = (l, r) -> 1 ./ r
+	r_grad = (l, r) -> -l .* r .^ -2
+
+	return Operation([x, y], size(x), (a, b) -> (Base.:/)(a, b), [l_grad, r_grad])
 end
 
 function (Base.:^)(x::Tensor, y::Tensor)
@@ -27,12 +36,17 @@ function (Base.:^)(x::Tensor, y::Tensor)
 		throw(DimensionMismatch(string(size(x)) * " incompatible with " * string(size(y))))
 	end
 
+	l_grad = (l, r) -> r .* l .^ (r .- 1)
+	r_grad = (l, r) -> l .^ r .* log.(l)
+
 	return Operation([x, y], size(x), (a, b) -> (Base.:^)(a, b))
 end
 
 
 function (Base.:*)(x::Tensor{0}, y::Tensor)
-	return Operation([x, y], size(y), (a, b) -> (Base.:*)(a, b))
+	l_grad = (l, r) -> r
+	r_grad = (l, r) -> l
+	return Operation([x, y], size(y), (a, b) -> (Base.:*)(a, b), [l_grad, r_grad])
 end
 
 function (Base.:*)(x::Tensor, y::Tensor{0})
@@ -46,5 +60,9 @@ function (Base.:*)(x::Tensor, y::Tensor)
 		throw(DimensionMismatch("Inner dimensions of operands for * do not match: " * string(size_x) * " vs. " * string(size_y)))
 	end
 	new_size = tuple(size_x[begin:end-1]..., size_y[begin+1:end]...)
-	return Operation([x, y], new_size, Base.:*)
+
+	l_grad = (l, r) -> r
+	r_grad = (l, r) -> l
+
+	return Operation([x, y], new_size, (a, b) -> (Base.:*)(a, b), [l_grad, r_grad])
 end

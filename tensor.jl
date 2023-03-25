@@ -36,8 +36,8 @@ struct Operation{N} <: Tensor{N}
 	size::SizeType
 	parents::Vector{<:Tensor}
 	callback::Function
-	gradient_callbacks::Vector{Function}
-	Operation(parents::Vector{<:Tensor}, size::SizeType, callback::Function, gradient_callbacks::Vector{Function}) = new{length(size)}(getNewId(), size, parents, callback, gradient_callbacks)
+	grad_callbacks::Vector{Function}
+	Operation(parents::Vector{<:Tensor}, size::SizeType, callback::Function, grad_callbacks::Vector{Function}) = new{length(size)}(getNewId(), size, parents, callback, grad_callbacks)
 end
 
 struct Constant{N} <: Tensor{N}

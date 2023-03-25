@@ -1,5 +1,5 @@
 
-export Model, TensorDict, predict
+export Model, TensorDict, predict, fit
 
 TensorDict = Dict{Tensor, Union{<:Array{<:Number}, <:Number}}
 GradDict = Dict{Tuple{Tensor, Tensor}, ConcreteTensor}
@@ -77,10 +77,10 @@ end
 struct Model{NumIn, NumOut}
 	inputs::Vector{<:Input}
 	outputs::Vector{<:Tensor}
-	trainables::Vector{<:Parameter}
+	parameters::Vector{<:Parameter}
 	labels::Union{<:Input, Missing}
 	objective::Union{<:Tensor{0}, Missing}
-	Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, trainables::Vector{<:Parameter}, labels::Union{<:Input, Missing}, objective::Union{<:Tensor{0}, Missing}) = new{length(inputs), length(outputs)}(inputs, outputs, trainables, labels, objective)
+	Model(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, parameters::Vector{<:Parameter}, labels::Union{<:Input, Missing}, objective::Union{<:Tensor{0}, Missing}) = new{length(inputs), length(outputs)}(inputs, outputs, parameters, labels, objective)
 end
 
 function _validate_graph(inputs::Vector{<:Input}, outputs::Vector{<:Tensor}, collect_params=false)::Vector{<:Parameter}
@@ -121,4 +121,21 @@ end
 function predict(model::Model, inputs::TensorDict)::Vector{ConcreteTensor}
 	cache = TensorDict(k => v for (k,v) in inputs)
 	return forward!(model.outputs, cache)
+end
+
+function fit(model::Model, x::TensorDict, y::ConcreteTensor; lr = 0.001)
+	if ismissing(model.labels)
+		throw(ErrorException("Tried to fit() a model with no objective"))
+	end
+	cache = TensorDict(k => v for (k, v) in x)
+	cache[model.labels] = y
+	forward!([model.outputs..., model.objective], cache)
+	grad_dict = GradDict()
+	backward!(grad_dict, model.objective, model.parameters, cache)
+
+	for parameter in model.parameters
+		parameter.value .-= grad_dict[model.objective, parameter] .* lr
+	end
+
+	return cache[model.objective]
 end

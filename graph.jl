@@ -18,10 +18,16 @@ function forward!(x::Operation, cache::TensorDict)
 end
 
 function forward!(x::Constant, cache::TensorDict)
+	if !(x in keys(cache))
+		cache[x] = x.value
+	end
 	return x.value
 end
 
 function forward!(x::Parameter, cache::TensorDict)
+	if !(x in keys(cache))
+		cache[x] = x.value
+	end
 	return x.value
 end
 
@@ -54,6 +60,9 @@ function backward!(grad_dict::GradDict, x::Operation, parameters::Vector{<:Param
 		end
 		if isa(parent, Parameter)
 			grad_dict[x, parent] = grad_callback(callback_args...)
+			@show x
+			@show parent
+			@show size(grad_dict[x, parent])
 			continue
 		end
 
@@ -68,7 +77,14 @@ function backward!(grad_dict::GradDict, x::Operation, parameters::Vector{<:Param
 			if !((x, param) in keys(grad_dict))
 				grad_dict[x, param] = 0.
 			end
-			grad_dict[x, param] .+= grad_dict[x, parent] .* grad_dict[parent, param]
+			#@show x
+			#@show parent
+			#@show param
+			#@show size(grad_dict[x, parent])
+			#@show size(grad_dict[parent, param])
+			println()
+			increment = grad_dict[x, parent] * grad_dict[parent, param]
+			grad_dict[x, param] = grad_dict[x, param] .+ increment
 		end
 
 	end

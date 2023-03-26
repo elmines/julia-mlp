@@ -11,17 +11,17 @@ function f(x)
 	return 50 .* sin.(x[:, begin:20]) ./ cbrt.(x[:, 41:end]) .+ (x[:, 11:30].^3 .* cos.(x[:, 35:54]) .- exp.(x[:, 41:end] ./ 10)).^2
 end
 
-function apply_dense(x::Tensor, output_size::Int; activation=missing, use_bias=false)
+function apply_dense(x::Tensor, output_size::Int; activation=missing, use_bias=false, layer_name="Dense")
 	n_features = size(x)[end]
-	W = Parameter((n_features, output_size))
+	W = Parameter((n_features, output_size), string(layer_name, "_W"))
 
 	h = x * W
 	if use_bias
-		b = Parameter(zeros(size(x)[begin], output_size))
+		b = Parameter(zeros(size(x)[begin], output_size), string(layer_name, "_b"))
 		h = h .+ b
 	end
 	if !ismissing(activation)
-		h = activation(h)
+		h = activation(h; name=string(layer_name, "_activation"))
 	end
 	return h
 end
@@ -30,13 +30,13 @@ BATCH_SIZE = 2
 NUM_FEATURES = 60
 NUM_BATCHES = 1000
 
-features = Input((BATCH_SIZE, NUM_FEATURES))
-labels = Input((BATCH_SIZE, 20))
-h1 = apply_dense(features, 40; activation=tanh, use_bias=true)
-predictions = apply_dense(h1, 20, use_bias=true)
+features = Input((BATCH_SIZE, NUM_FEATURES), "features")
+labels = Input((BATCH_SIZE, 20), "labels")
+h1 = apply_dense(features, 40; activation=tanh, use_bias=true, layer_name="Dense1")
+predictions = apply_dense(h1, 20, use_bias=true, layer_name="Dense2")
 loss = (predictions - labels) .^ 2.0
 loss = sum(loss)
-@show loss
+#@show loss
 
 model = Model([features], [predictions], labels, loss)
 input_dict = TensorDict(features => ones(Float64, size(features)))

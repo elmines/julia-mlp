@@ -20,7 +20,8 @@ function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:+), x, y)
 
 	l_grad = (l, r) -> 1
 	r_grad = (l, r) -> 1
-	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:+, a, b), [l_grad, r_grad])
+
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:+, a, b), [l_grad, r_grad], "Add")
 end
 
 function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:-), x, y)
@@ -31,7 +32,7 @@ function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:-), x, y)
 
 	l_grad = (l, r) -> 1
 	r_grad = (l, r) -> -1
-	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:-, a, b), [l_grad, r_grad])
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:-, a, b), [l_grad, r_grad], "Sub")
 end
 
 function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:/), x, y)
@@ -42,7 +43,7 @@ function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:/), x, y)
 
 	l_grad = (l, r) -> 1 ./ r
 	r_grad = (l, r) -> -l .* r .^ -2
-	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:/, a, b), [l_grad, r_grad])
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:/, a, b), [l_grad, r_grad], "Div")
 end
 
 function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:*), x, y)
@@ -53,7 +54,7 @@ function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:*), x, y)
 
 	l_grad = (l, r) -> r
 	r_grad = (l, r) -> l
-	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:*, a, b), [l_grad, r_grad])
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:*, a, b), [l_grad, r_grad], "Mul")
 end
 
 function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:^), x, y)
@@ -64,6 +65,6 @@ function Base.Broadcast.broadcasted(::TensorStyle, ::typeof(Base.:^), x, y)
 
 	l_grad = (l, r) -> r .* l .^ (r .- 1)
 	r_grad = (l, r) -> l .^ r .* log.(l)
-	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:^, a, b), [l_grad, r_grad])
+	return Operation([x, y], new_size, (a, b) -> broadcast(Base.:^, a, b), [l_grad, r_grad], "Pow")
 end
 

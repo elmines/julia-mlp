@@ -1,4 +1,6 @@
 
+include("linalg.jl")
+
 export Model, TensorDict, predict, fit
 
 TensorDict = Dict{Tensor, Union{<:Array{<:Number}, <:Number}}
@@ -77,13 +79,12 @@ function backward!(grad_dict::GradDict, x::Operation, parameters::Vector{<:Param
 			if !((x, param) in keys(grad_dict))
 				grad_dict[x, param] = 0.
 			end
-			#@show x
-			#@show parent
-			#@show param
+			@show x
+			@show parent
+			@show param
 			#@show size(grad_dict[x, parent])
 			#@show size(grad_dict[parent, param])
-			println()
-			increment = grad_dict[x, parent] * grad_dict[parent, param]
+			increment = general_dot(grad_dict[x, parent], grad_dict[parent, param])
 			grad_dict[x, param] = grad_dict[x, param] .+ increment
 		end
 

@@ -17,7 +17,7 @@ function apply_dense(x::Tensor, output_size::Int; activation=missing, use_bias=f
 
 	h = x * W
 	if use_bias
-		b = Parameter(zeros(size(x)[begin], output_size), string(layer_name, "_b"))
+		b = Parameter(zeros(1, output_size), string(layer_name, "_b"))
 		h = h .+ b
 	end
 	if !ismissing(activation)
